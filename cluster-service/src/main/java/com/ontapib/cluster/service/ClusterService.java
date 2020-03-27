@@ -19,6 +19,7 @@ public class ClusterService {
 		return clusterRepository.save(new Cluster(clusterName, version));
 	}
 	
+	//Get Clusterlist
 	public List<Cluster> getAllClusters() {
 		return clusterRepository.findAll();
 	}
