@@ -19,5 +19,4 @@ public class ClusterController {
 		Cluster c = clusterService.createCluster(clusterName, version);
 		return c.toString();
 	}
-
 }
