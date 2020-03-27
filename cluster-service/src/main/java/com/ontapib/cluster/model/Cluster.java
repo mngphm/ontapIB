@@ -11,7 +11,6 @@ public class Cluster {
 		this.clusterVersion = clusterVersion;
 	}
 	
-
 	@Id
 	private String Id;
 	private String clusterName;
