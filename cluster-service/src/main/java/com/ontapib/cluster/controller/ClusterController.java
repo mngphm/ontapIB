@@ -3,6 +3,7 @@ package com.ontapib.cluster.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,8 +19,8 @@ public class ClusterController {
 	private ClusterService clusterService;
 
 	@RequestMapping("/create")
-	public String createCluster(@RequestParam String clusterName, @RequestParam String version,
-			@RequestParam List<Shelve> shelves) {
+	public String createCluster(@RequestBody String clusterName, @RequestBody String version,
+			@RequestBody List<Shelve> shelves) {
 		Cluster c = clusterService.createCluster(clusterName, version, shelves);
 		return c.toString();
 	}
