@@ -19,9 +19,9 @@ public class ClusterController {
 	private ClusterService clusterService;
 
 	@RequestMapping("/create")
-	public String createCluster(@RequestBody String clusterName, @RequestBody String version,
-			@RequestBody List<Shelve> shelves) {
-		Cluster c = clusterService.createCluster(clusterName, version, shelves);
+	public String createCluster(@RequestBody Cluster cluster) {
+		Cluster c = clusterService.createCluster(cluster.getClusterName(), cluster.getClusterVersion(), 
+				cluster.getShelves());
 		return c.toString();
 	}
 }
