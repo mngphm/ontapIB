@@ -1,20 +1,24 @@
 package com.ontapib.cluster.model;
 
+import java.util.List;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document
 public class Cluster {
 
-	public Cluster(String clusterName, String clusterVersion) {
+	public Cluster(String clusterName, String clusterVersion, List<Shelve> shelves) {
 		this.clusterName = clusterName;
 		this.clusterVersion = clusterVersion;
+		this.shelves = shelves; 
 	}
 	
 	@Id
 	private String Id;
 	private String clusterName;
 	private String clusterVersion;
+	private List<Shelve> shelves;
 
 	public String getClusterName() {
 		return clusterName;
@@ -30,6 +34,14 @@ public class Cluster {
 
 	public void setClusterVersion(String clusterVersion) {
 		this.clusterVersion = clusterVersion;
+	}
+
+	public List<Shelve> getShelves() {
+		return shelves;
+	}
+
+	public void setShelves(List<Shelve> shelves) {
+		this.shelves = shelves;
 	}
 
 	public String toString() {
