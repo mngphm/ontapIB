@@ -100,6 +100,7 @@ public class ClusterController {
 			
 			saxParser.parse(new InputSource(new StringReader(importedCluster)), handler);
 			
+			System.out.println(newCluster.getClusterVersion());
 			Cluster c = clusterService.createCluster(newCluster.getClusterName(), newCluster.getClusterVersion(),
 					newCluster.getShelves());
 			
