@@ -1,6 +1,7 @@
 package com.ontapib.cluster.controller;
 
 import java.io.StringReader;
+import java.util.Date;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
@@ -30,7 +31,12 @@ public class ClusterController {
 	
 	@RequestMapping("/create")
 	public String createCluster(@RequestBody Cluster cluster) {
-		Cluster c = clusterService.createCluster(cluster.getClusterName(), cluster.getClusterVersion(),
+		Cluster c = clusterService.createCluster(
+				cluster.getSerialnumber(),
+				cluster.getClusterName(), 
+				cluster.getClusterVersion(),
+				cluster.getModel(),
+				cluster.getWarrantyEndDate(),
 				cluster.getShelves());
 		return c.toString();
 	}
@@ -51,6 +57,7 @@ public class ClusterController {
 				boolean bserial = false;
 				boolean bmodelName = false;
 				boolean bclusterVersion = false;
+				boolean bwarrantyEndDate = false;
 
 				public void startElement(String uri, String localName, String qName, Attributes attributes)
 						throws SAXException {
@@ -64,6 +71,8 @@ public class ClusterController {
 						bmodelName = true;
 					if (qName.equals("sys_version"))
 						bclusterVersion = true;
+					if (qName.equals("warranty_end_date"))
+						bwarrantyEndDate = true;
 				}
 
 				public void endElement(String uri, String localName, String qName) {
@@ -95,13 +104,23 @@ public class ClusterController {
 						newCluster.setModel(model);
 						bmodelName = false;
 					}
+					if (bwarrantyEndDate) {
+						String warrantyEndDate = new String(ch, start, length);
+						System.out.println("Model: " + warrantyEndDate);
+						newCluster.setWarrantyEndDate(new Date(warrantyEndDate));
+						bmodelName = false;
+					}
 				}
 			};
 			
 			saxParser.parse(new InputSource(new StringReader(importedCluster)), handler);
 			
 			System.out.println(newCluster.getClusterVersion());
-			Cluster c = clusterService.createCluster(newCluster.getClusterName(), newCluster.getClusterVersion(),
+			Cluster c = clusterService.createCluster(newCluster.getSerialnumber(),
+					newCluster.getClusterName(), 
+					newCluster.getClusterVersion(),
+					newCluster.getModel(),
+					newCluster.getWarrantyEndDate(),
 					newCluster.getShelves());
 			
 			c.toString();		

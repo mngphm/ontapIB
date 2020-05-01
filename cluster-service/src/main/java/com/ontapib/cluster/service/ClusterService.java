@@ -1,5 +1,6 @@
 package com.ontapib.cluster.service;
 
+import java.util.Date;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,8 +17,9 @@ public class ClusterService {
 	private ClusterRepository clusterRepository;
 
 	// Create Cluster
-	public Cluster createCluster(String clusterName, String version, List<Shelve> shelves) {
-		return clusterRepository.save(new Cluster(clusterName, version, shelves));
+	public Cluster createCluster(String serial, String clusterName, String version, 
+			String model, Date warrantyEndDate,List<Shelve> shelves) {
+		return clusterRepository.save(new Cluster(serial, clusterName, version, model, warrantyEndDate, shelves));
 	}
 
 	// Get Clusterlist

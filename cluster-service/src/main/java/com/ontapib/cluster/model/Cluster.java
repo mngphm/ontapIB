@@ -10,9 +10,15 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class Cluster {
 
 	public Cluster() {}
-	public Cluster(String clusterName, String clusterVersion, List<Shelve> shelves) {
+
+	public Cluster(String serialnumber, String clusterName, String clusterVersion, String model, Date warrantyEndDate,
+			List<Shelve> shelves) {
+		super();
+		this.serialnumber = serialnumber;
 		this.clusterName = clusterName;
 		this.clusterVersion = clusterVersion;
+		this.model = model;
+		this.warrantyEndDate = warrantyEndDate;
 		this.shelves = shelves;
 	}
 
