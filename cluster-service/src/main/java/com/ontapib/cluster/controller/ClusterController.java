@@ -61,9 +61,9 @@ public class ClusterController {
 					if (qName.equals("hostname"))
 						bclusterName = true;
 					if (qName.equals("sys_model"))
-						bserial = true;
+						bmodelName = true;
 					if (qName.equals("sys_version"))
-						bclusterName = true;
+						bclusterVersion = true;
 				}
 
 				public void endElement(String uri, String localName, String qName) {
@@ -87,13 +87,13 @@ public class ClusterController {
 						String clusterVersion = new String(ch, start, length);
 						System.out.println("Clusterversion: " + clusterVersion);
 						newCluster.setClusterVersion(clusterVersion);
-						bclusterName = false;
+						bclusterVersion = false;
 					}
 					if (bmodelName) {
 						String model = new String(ch, start, length);
 						System.out.println("Model: " + model);
 						newCluster.setModel(model);
-						bclusterName = false;
+						bmodelName = false;
 					}
 				}
 			};
@@ -104,6 +104,7 @@ public class ClusterController {
 			Cluster c = clusterService.createCluster(newCluster.getClusterName(), newCluster.getClusterVersion(),
 					newCluster.getShelves());
 			
+			c.toString();		
 
 		} catch (Exception e) {
 			// TODO: handle exception
