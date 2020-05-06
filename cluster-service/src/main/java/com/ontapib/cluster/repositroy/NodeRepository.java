@@ -2,8 +2,8 @@ package com.ontapib.cluster.repositroy;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import com.ontapib.cluster.model.Shelve;
+import com.ontapib.cluster.model.Node;
 
-public interface ShelveRepository extends MongoRepository<Shelve, String> {
+public interface NodeRepository extends MongoRepository<Node, String> {
 
 }
