@@ -43,6 +43,11 @@ public class ClusterController {
 				cluster.getNodes());
 		return c.toString();
 	}
+	
+	@RequestMapping("/cluster/clusters")
+	public List<Cluster> getAllClusters() {
+		return clusterService.getAllClusters();
+	}
 
 	public List<Node> importNodes(Cluster c, String clusterIdentifier) {
 		List<Node> nodeList = new ArrayList<>();
