@@ -37,7 +37,7 @@ public class ClusterController {
 	@Autowired
 	private WebClient.Builder webClientBuilder;
 
-	@RequestMapping("/create")
+	@RequestMapping("/cluster/create")
 	public String createCluster(@RequestBody Cluster cluster) {
 		Cluster c = clusterService.createCluster(cluster.getClusterName(), cluster.getClusterIdentifier(),
 				cluster.getNodes());
@@ -145,7 +145,7 @@ public class ClusterController {
 
 	}
 
-	@RequestMapping("/import/{nodeSerial}")
+	@RequestMapping("/node/import/{nodeSerial}")
 	public String importNode(@PathVariable("nodeSerial") String nodeSerial) {
 		List<Node> nodeList = null;
 		String asupCluster = webClientBuilder.build().get().uri(
