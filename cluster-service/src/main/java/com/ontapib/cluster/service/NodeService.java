@@ -26,10 +26,9 @@ public class NodeService {
 		return nodeRepository.save(node);
 	}
 	
-	// Get Nodes
-
-	public NodeService() {
-		// TODO Auto-generated constructor stub
+	// Get all Nodes
+	public List<Node> getAllNodes() {
+		return nodeRepository.findAll();
 	}
-
+	
 }

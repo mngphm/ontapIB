@@ -15,6 +15,7 @@ public class Node {
 	private String model;
 	private Date warrantyEndDate;
 	private String version;
+	private Cluster cluster;
 	private List<Shelve> shelves;
 
 	public Node() {
@@ -77,6 +78,14 @@ public class Node {
 
 	public void setVersion(String version) {
 		this.version = version;
+	}
+
+	public Cluster getCluster() {
+		return cluster;
+	}
+
+	public void setCluster(Cluster cluster) {
+		this.cluster = cluster;
 	}
 	
 }
