@@ -137,6 +137,7 @@ public class ClusterController {
 			
 
 			saxParser.parse(new InputSource(new StringReader(getASUPnode)), handler);
+			
 			for (Node node : nodeList) {
 				node.setCluster(c);
 				nodeService.createNode(node);
