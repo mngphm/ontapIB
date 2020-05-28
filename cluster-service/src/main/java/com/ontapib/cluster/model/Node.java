@@ -7,11 +7,10 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document
-public class Node {
-	@Id
-	private String Id;
+public class Node extends Component{
+	
 	private String nodeName;
-	private String serialnumber;
+	private String serialNumber;
 	private String model;
 	private Date warrantyEndDate;
 	private String version;
@@ -21,12 +20,12 @@ public class Node {
 	public Node() {
 	}
 
-	public Node(String nodeName, String version, String serialnumber, String model, 
+	public Node(String nodeName, String version, String serialNumber, String model, 
 			Date warrantyEndDate, List<Shelve> shelves) {
 		super();
 		this.nodeName = nodeName;
 		this.version = version;
-		this.serialnumber = serialnumber;
+		this.serialNumber = serialNumber;
 		this.model = model;
 		this.warrantyEndDate = warrantyEndDate;
 		this.shelves = shelves;
@@ -41,11 +40,11 @@ public class Node {
 	}
 
 	public String getSerialnumber() {
-		return serialnumber;
+		return serialNumber;
 	}
 
-	public void setSerialnumber(String serialnumber) {
-		this.serialnumber = serialnumber;
+	public void setSerialnumber(String serialNumber) {
+		this.serialNumber = serialNumber;
 	}
 
 	public String getModel() {
@@ -86,6 +85,14 @@ public class Node {
 
 	public void setCluster(Cluster cluster) {
 		this.cluster = cluster;
+	}
+
+	public String getSerialNumber() {
+		return serialNumber;
+	}
+
+	public void setSerialNumber(String serialNumber) {
+		this.serialNumber = serialNumber;
 	}
 	
 }

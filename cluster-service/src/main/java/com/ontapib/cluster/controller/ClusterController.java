@@ -1,10 +1,10 @@
 package com.ontapib.cluster.controller;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.io.StringReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
@@ -21,6 +21,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import com.ontapib.cluster.model.Cluster;
+import com.ontapib.cluster.model.Component;
 import com.ontapib.cluster.model.Node;
 import com.ontapib.cluster.service.ClusterService;
 import com.ontapib.cluster.service.NodeService;
@@ -49,9 +50,9 @@ public class ClusterController {
 		return clusterService.getAllClusters();
 	}
 
-	public List<Node> importNodes(Cluster c, String clusterIdentifier) {
-		List<Node> nodeList = new ArrayList<>();
-
+	public List<Component> importNodes(Cluster c, String clusterIdentifier) {
+		List<Component> nodeList = new ArrayList<>();
+		
 		String getASUPnode = webClientBuilder.build().get().uri(
 				"http://reststg.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/cluster_identifier/"
 						+ clusterIdentifier)
@@ -137,24 +138,20 @@ public class ClusterController {
 			
 
 			saxParser.parse(new InputSource(new StringReader(getASUPnode)), handler);
-			
-			for (Node node : nodeList) {
-				node.setCluster(c);
-				nodeService.createNode(node);
+			for (Component node : nodeList) {
+				((Node) node).setCluster(c);
+				nodeService.createNode((Node) node);
 			}
-
-
+			
 		} catch (Exception e) {
 			// TODO: handle exception
 		}
 
 		return nodeList;
-
 	}
 
 	@RequestMapping("/node/import/{nodeSerial}")
 	public String importNode(@PathVariable("nodeSerial") String nodeSerial) {
-		List<Node> nodeList = null;
 		String asupCluster = webClientBuilder.build().get().uri(
 				"http://reststg.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/sys_serial_no/"
 						+ nodeSerial)
@@ -202,11 +199,7 @@ public class ClusterController {
 
 			saxParser.parse(new InputSource(new StringReader(asupCluster)), handler);
 
-			nodeList = importNodes(c, c.getClusterIdentifier());
-			c.setNodes(nodeList);
-			clusterService.createCluster(c);
-
-			
+			importNodes(c, c.getClusterIdentifier());
 
 		} catch (Exception e) {
 			// TODO: handle exception

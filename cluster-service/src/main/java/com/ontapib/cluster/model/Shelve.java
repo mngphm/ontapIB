@@ -1,15 +1,16 @@
 package com.ontapib.cluster.model;
 
-public class Shelve {
+public class Shelve extends Component {
+	private String serialNumber;
+	private String model;
+	private double diskSize;
+	private int diskAmount;
 
 	public Shelve(String serialNumber, String model) {
 		super();
 		this.serialNumber = serialNumber;
 		this.model = model;
 	}
-
-	private String serialNumber;
-	private String model;
 
 	public String getSerialNumber() {
 		return serialNumber;
@@ -25,6 +26,22 @@ public class Shelve {
 
 	public void setModel(String model) {
 		this.model = model;
+	}
+
+	public double getDiskSize() {
+		return diskSize;
+	}
+
+	public void setDiskSize(double diskSize) {
+		this.diskSize = diskSize;
+	}
+
+	public int getDiskAmount() {
+		return diskAmount;
+	}
+
+	public void setDiskAmount(int diskAmount) {
+		this.diskAmount = diskAmount;
 	}
 
 }
