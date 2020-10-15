@@ -3,6 +3,7 @@ package com.ontapib.cluster.model;
 public class Aggregate extends Component {
 	
 	private String aggrName;
+	private boolean isRoot;
 	private double aggrUsable;
 	private double aggrUsed;
 	private double aggrAvail;
@@ -17,6 +18,14 @@ public class Aggregate extends Component {
 
 	public void setAggrName(String aggrName) {
 		this.aggrName = aggrName;
+	}
+
+	public boolean isRoot() {
+		return isRoot;
+	}
+
+	public void setRoot(boolean isRoot) {
+		this.isRoot = isRoot;
 	}
 
 	public double getAggrUsable() {

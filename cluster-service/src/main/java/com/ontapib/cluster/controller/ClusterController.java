@@ -188,6 +188,7 @@ public class ClusterController {
 				boolean baggrUsed = false;
 				boolean baggrUsable = false;
 				boolean baggrUsedPct = false;
+				boolean baggrIsRoot = false;
 				
 				public void startElement(String uri, String localName, String qName, Attributes attributes)
 						throws SAXException {
@@ -203,6 +204,8 @@ public class ClusterController {
 						baggrUsable = true;
 					if (qName.equals("aggr_used_pct"))
 						baggrUsedPct = true;
+					if (qName.equals("aggr_is_root"))
+						baggrIsRoot = true;
 				}
 
 				public void endElement(String uri, String localName, String qName) {
@@ -251,13 +254,21 @@ public class ClusterController {
 						System.out.println("Aggregate Used Percentage: " + aggrUsedPct);
 						baggrUsedPct = false;
 					}
+					if (baggrIsRoot) {
+						String aggrIsRoot = new String(ch, start, length);
+						aggr.setRoot(Boolean.parseBoolean(aggrIsRoot));
+						System.out.println("Is root aggregate: " + aggrIsRoot);
+						baggrIsRoot = false;
+					}
 				}
 			};
 			
 			saxParser.parse(new InputSource(new StringReader(asupData)), handler);
 			for (Aggregate aggregate : aggrList) {
-				usedSpace =+ aggregate.getAggrUsed();
-				allocatedSpace =+ aggregate.getAggrUsable();
+				if(!aggregate.isRoot()) {
+					usedSpace = usedSpace + aggregate.getAggrUsed();
+					allocatedSpace = allocatedSpace + aggregate.getAggrUsable();
+				}
 				
 			}
 			
