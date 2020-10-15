@@ -18,6 +18,8 @@ public class Node extends Component{
 	private List<Shelve> shelves;
 	private String asupBizkey;
 	private List<Aggregate> aggregates;
+	private double usedSpace;
+	private double allocatedSpace;
 
 	public Node() {
 	}
@@ -112,6 +114,22 @@ public class Node extends Component{
 
 	public void setAggregates(List<Aggregate> aggregates) {
 		this.aggregates = aggregates;
+	}
+
+	public double getUsedSpace() {
+		return usedSpace;
+	}
+
+	public void setUsedSpace(double usedSpace) {
+		this.usedSpace = usedSpace;
+	}
+
+	public double getAllocatedSpace() {
+		return allocatedSpace;
+	}
+
+	public void setAllocatedSpace(double allocatedSpace) {
+		this.allocatedSpace = allocatedSpace;
 	}
 	
 }

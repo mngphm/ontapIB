@@ -166,6 +166,8 @@ public class ClusterController {
 	public String updateAsupNode(@PathVariable("nodeSerial") String nodeSerial) {
 		Node node = nodeService.getNode(nodeSerial);
 		List<Aggregate> aggrList = new ArrayList<>();
+		double usedSpace = 0;
+		double allocatedSpace = 0;
 
 		String asupData = webClientBuilder.build().get()
 				.uri("http://reststg.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/biz_key/"
@@ -250,8 +252,16 @@ public class ClusterController {
 					}
 				}
 			};
-
+			
 			saxParser.parse(new InputSource(new StringReader(asupData)), handler);
+			for (Aggregate aggregate : aggrList) {
+				usedSpace =+ aggregate.getAggrUsed();
+				allocatedSpace =+ aggregate.getAggrUsable();
+				
+			}
+			
+			node.setAllocatedSpace(allocatedSpace);
+			node.setUsedSpace(usedSpace);
 			node.setAggregates(aggrList);
 			nodeService.setNode(node);
 
