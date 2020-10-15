@@ -20,6 +20,7 @@ public class Node extends Component{
 	private List<Aggregate> aggregates;
 	private double usedSpace;
 	private double allocatedSpace;
+	private double availSpace;
 
 	public Node() {
 	}
@@ -130,6 +131,14 @@ public class Node extends Component{
 
 	public void setAllocatedSpace(double allocatedSpace) {
 		this.allocatedSpace = allocatedSpace;
+	}
+
+	public double getAvailSpace() {
+		return availSpace;
+	}
+
+	public void setAvailSpace(double availSpace) {
+		this.availSpace = availSpace;
 	}
 	
 }

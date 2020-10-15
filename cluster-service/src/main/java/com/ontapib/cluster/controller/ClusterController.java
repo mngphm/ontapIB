@@ -168,6 +168,7 @@ public class ClusterController {
 		List<Aggregate> aggrList = new ArrayList<>();
 		double usedSpace = 0;
 		double allocatedSpace = 0;
+		double availSpace = 0;
 
 		String asupData = webClientBuilder.build().get()
 				.uri("http://reststg.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/biz_key/"
@@ -262,6 +263,7 @@ public class ClusterController {
 			
 			node.setAllocatedSpace(allocatedSpace);
 			node.setUsedSpace(usedSpace);
+			node.setAvailSpace(availSpace);
 			node.setAggregates(aggrList);
 			nodeService.setNode(node);
 

@@ -5,6 +5,7 @@ public class Aggregate extends Component {
 	private String aggrName;
 	private double aggrUsable;
 	private double aggrUsed;
+	private double aggrAvail;
 	private double aggrUsedPct;
 
 	public Aggregate() {
@@ -32,6 +33,14 @@ public class Aggregate extends Component {
 
 	public void setAggrUsed(double aggrUsed) {
 		this.aggrUsed = aggrUsed;
+	}
+
+	public double getAggrAvail() {
+		return aggrAvail;
+	}
+
+	public void setAggrAvail(double aggrAvail) {
+		this.aggrAvail = aggrAvail;
 	}
 
 	public double getAggrUsedPct() {
