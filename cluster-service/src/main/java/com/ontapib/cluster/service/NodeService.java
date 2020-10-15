@@ -18,8 +18,8 @@ public class NodeService {
 	
 	// Create Node
 	public Node createNode(String nodeName, String version, String serialnumber, String model, 
-			Date warrantyEndDate, List<Shelve> shelves) {
-		return nodeRepository.save(new Node(nodeName, version, serialnumber, model, warrantyEndDate, shelves));
+			Date warrantyEndDate, List<Shelve> shelves, String asupBizkey) {
+		return nodeRepository.save(new Node(nodeName, version, serialnumber, model, warrantyEndDate, shelves, asupBizkey));
 	}
 	
 	public Node createNode(Node node) {
@@ -29,6 +29,14 @@ public class NodeService {
 	// Get all Nodes
 	public List<Node> getAllNodes() {
 		return nodeRepository.findAll();
+	}
+	
+	public Node getNode(String nodeSerial) {
+		return nodeRepository.findBySerialNumber(nodeSerial);
+	}
+	
+	public Node setNode(Node node) {
+		return nodeRepository.save(node);
 	}
 	
 }

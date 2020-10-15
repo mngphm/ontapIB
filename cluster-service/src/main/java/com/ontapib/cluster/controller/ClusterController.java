@@ -20,6 +20,7 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
+import com.ontapib.cluster.model.Aggregate;
 import com.ontapib.cluster.model.Cluster;
 import com.ontapib.cluster.model.Component;
 import com.ontapib.cluster.model.Node;
@@ -34,7 +35,7 @@ public class ClusterController {
 
 	@Autowired
 	private NodeService nodeService;
-	
+
 	@Autowired
 	private WebClient.Builder webClientBuilder;
 
@@ -44,7 +45,7 @@ public class ClusterController {
 				cluster.getNodes());
 		return c.toString();
 	}
-	
+
 	@RequestMapping("/cluster/clusters")
 	public List<Cluster> getAllClusters() {
 		return clusterService.getAllClusters();
@@ -52,7 +53,7 @@ public class ClusterController {
 
 	public List<Component> importNodes(Cluster c, String clusterIdentifier) {
 		List<Component> nodeList = new ArrayList<>();
-		
+
 		String getASUPnode = webClientBuilder.build().get().uri(
 				"http://reststg.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/cluster_identifier/"
 						+ clusterIdentifier)
@@ -63,20 +64,20 @@ public class ClusterController {
 			SAXParser saxParser = fact.newSAXParser();
 			DefaultHandler handler = new DefaultHandler() {
 				Node newNode = null;
-				
+
 				boolean bnodeName = false;
 				boolean bnodeSerial = false;
 				boolean bmodelName = false;
 				boolean bnodeVersion = false;
 				boolean bwarrantyEndDate = false;
+				boolean bASUP = false;
 
 				public void startElement(String uri, String localName, String qName, Attributes attributes)
 						throws SAXException {
 
 					System.out.println("Start Element: " + qName);
-					if (qName.equals("system")) {
+					if (qName.equals("system"))
 						newNode = new Node();
-					}
 					if (qName.equals("hostname"))
 						bnodeName = true;
 					if (qName.equals("sys_serial_no"))
@@ -87,11 +88,13 @@ public class ClusterController {
 						bnodeVersion = true;
 					if (qName.equals("warranty_end_date"))
 						bwarrantyEndDate = true;
+					if (qName.equals("biz_key"))
+						bASUP = true;
 				}
 
 				public void endElement(String uri, String localName, String qName) {
 					System.out.println("End Element: " + qName);
-					if(qName.equalsIgnoreCase("system")) {
+					if (qName.equalsIgnoreCase("system")) {
 						nodeList.add(newNode);
 					}
 				}
@@ -133,21 +136,129 @@ public class ClusterController {
 						}
 						bwarrantyEndDate = false;
 					}
+					if (bASUP) {
+						String bizKey = new String(ch, start, length);
+						System.out.println("ASUP bizkey: " + bizKey);
+						if (newNode.getAsupBizkey() == null) {
+							newNode.setAsupBizkey(bizKey);
+							bASUP = false;
+						}
+						bASUP = false;
+					}
 				}
 			};
-			
 
 			saxParser.parse(new InputSource(new StringReader(getASUPnode)), handler);
 			for (Component node : nodeList) {
 				((Node) node).setCluster(c);
+				System.out.println("Write Node to the DB!");
 				nodeService.createNode((Node) node);
 			}
-			
+
 		} catch (Exception e) {
 			// TODO: handle exception
 		}
 
 		return nodeList;
+	}
+
+	@RequestMapping("/node/updateASUP/{nodeSerial}")
+	public String updateAsupNode(@PathVariable("nodeSerial") String nodeSerial) {
+		Node node = nodeService.getNode(nodeSerial);
+		List<Aggregate> aggrList = new ArrayList<>();
+
+		String asupData = webClientBuilder.build().get()
+				.uri("http://reststg.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/biz_key/"
+						+ node.getAsupBizkey() + "/object_view/aggregate")
+				.exchange().block().bodyToMono(String.class).block();
+
+		try {
+			SAXParserFactory fact = SAXParserFactory.newInstance();
+			SAXParser saxParser = fact.newSAXParser();
+			DefaultHandler handler = new DefaultHandler() {
+
+				Aggregate aggr = null;
+				int aggrTagOpened = 0;
+				int aggrTagClosed = 0;
+				boolean baggrRowTag = false;
+				boolean baggrName = false;
+				boolean baggrUsed = false;
+				boolean baggrUsable = false;
+				boolean baggrUsedPct = false;
+				
+				public void startElement(String uri, String localName, String qName, Attributes attributes)
+						throws SAXException {
+
+					System.out.println("Start Element: " + qName);
+					if (qName.equals("row"))
+						baggrRowTag = true;
+					if (qName.equals("aggr_name"))
+						baggrName = true;
+					if (qName.equals("aggr_used_kb"))
+						baggrUsed = true;
+					if (qName.equals("aggr_allocated_kb"))
+						baggrUsable = true;
+					if (qName.equals("aggr_used_pct"))
+						baggrUsedPct = true;
+				}
+
+				public void endElement(String uri, String localName, String qName) {
+					System.out.println("End Element: " + qName);
+					if (qName.equalsIgnoreCase("row")) {
+						System.out.println("Aggr opened and closed count: " + aggrTagOpened + " " + aggrTagClosed);
+						aggrTagClosed++;
+						if(aggrTagOpened == aggrTagClosed) {
+							aggrList.add(aggr);
+							aggrTagOpened = 0;
+							aggrTagClosed = 0;
+						}
+					}
+				}
+
+				public void characters(char[] ch, int start, int length) throws SAXException {
+					if (baggrRowTag) {
+						System.out.println("Aggr opened count: " + aggrTagOpened + " " + aggrTagClosed);
+						if(aggrTagOpened == aggrTagClosed) {
+							aggr = new Aggregate();
+						}
+						aggrTagOpened++;
+						baggrRowTag = false;
+					}
+					if (baggrName) {
+						String aggrName = new String(ch, start, length);
+						aggr.setAggrName(aggrName);
+						System.out.println("Aggregate Name: " + aggrName);
+						baggrName = false;
+					}
+					if (baggrUsed) {
+						String aggrUsed = new String(ch, start, length);
+						aggr.setAggrUsed(Double.parseDouble(aggrUsed));
+						System.out.println("Aggregate Used: " + aggrUsed);
+						baggrUsed = false;
+					}
+					if (baggrUsable) {
+						String aggrUsable = new String(ch, start, length);
+						aggr.setAggrUsable(Double.parseDouble(aggrUsable));
+						System.out.println("Aggregate Usable: " + aggrUsable);
+						baggrUsable = false;
+					}
+					if (baggrUsedPct) {
+						String aggrUsedPct = new String(ch, start, length);
+						aggr.setAggrUsedPct(Double.parseDouble(aggrUsedPct));
+						System.out.println("Aggregate Used Percentage: " + aggrUsedPct);
+						baggrUsedPct = false;
+					}
+				}
+			};
+
+			saxParser.parse(new InputSource(new StringReader(asupData)), handler);
+			node.setAggregates(aggrList);
+			nodeService.setNode(node);
+
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		return asupData;
 	}
 
 	@RequestMapping("/node/import/{nodeSerial}")

@@ -16,12 +16,14 @@ public class Node extends Component{
 	private String version;
 	private Cluster cluster;
 	private List<Shelve> shelves;
+	private String asupBizkey;
+	private List<Aggregate> aggregates;
 
 	public Node() {
 	}
 
 	public Node(String nodeName, String version, String serialNumber, String model, 
-			Date warrantyEndDate, List<Shelve> shelves) {
+			Date warrantyEndDate, List<Shelve> shelves, String asupBizkey) {
 		super();
 		this.nodeName = nodeName;
 		this.version = version;
@@ -29,6 +31,7 @@ public class Node extends Component{
 		this.model = model;
 		this.warrantyEndDate = warrantyEndDate;
 		this.shelves = shelves;
+		this.asupBizkey = asupBizkey;
 	}
 
 	public String getNodeName() {
@@ -93,6 +96,22 @@ public class Node extends Component{
 
 	public void setSerialNumber(String serialNumber) {
 		this.serialNumber = serialNumber;
+	}
+
+	public String getAsupBizkey() {
+		return asupBizkey;
+	}
+
+	public void setAsupBizkey(String asupBizkey) {
+		this.asupBizkey = asupBizkey;
+	}
+
+	public List<Aggregate> getAggregates() {
+		return aggregates;
+	}
+
+	public void setAggregates(List<Aggregate> aggregates) {
+		this.aggregates = aggregates;
 	}
 	
 }
