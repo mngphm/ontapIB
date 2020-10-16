@@ -254,7 +254,7 @@ public class ClusterController {
 					}
 					if (baggrAvail) {
 						String aggrAvail = new String(ch, start, length);
-						aggr.setRoot(Boolean.parseBoolean(aggrAvail));
+						aggr.setAggrAvail(Double.parseDouble(aggrAvail));
 						System.out.println("Aggregate Available: " + aggrAvail);
 						baggrAvail = false;
 					}
