@@ -153,6 +153,7 @@ public class ClusterController {
 				((Node) node).setCluster(c);
 				System.out.println("Write Node to the DB!");
 				nodeService.createNode((Node) node);
+				updateAsupNode(((Node) node).getSerialnumber());
 			}
 
 		} catch (Exception e) {
@@ -189,6 +190,7 @@ public class ClusterController {
 				boolean baggrUsable = false;
 				boolean baggrUsedPct = false;
 				boolean baggrIsRoot = false;
+				boolean baggrAvail = false;
 				
 				public void startElement(String uri, String localName, String qName, Attributes attributes)
 						throws SAXException {
@@ -206,6 +208,8 @@ public class ClusterController {
 						baggrUsedPct = true;
 					if (qName.equals("aggr_is_root"))
 						baggrIsRoot = true;
+					if (qName.equals("aggr_avail_kb"))
+						baggrAvail = true;
 				}
 
 				public void endElement(String uri, String localName, String qName) {
@@ -248,6 +252,12 @@ public class ClusterController {
 						System.out.println("Aggregate Usable: " + aggrUsable);
 						baggrUsable = false;
 					}
+					if (baggrAvail) {
+						String aggrAvail = new String(ch, start, length);
+						aggr.setRoot(Boolean.parseBoolean(aggrAvail));
+						System.out.println("Aggregate Available: " + aggrAvail);
+						baggrAvail = false;
+					}
 					if (baggrUsedPct) {
 						String aggrUsedPct = new String(ch, start, length);
 						aggr.setAggrUsedPct(Double.parseDouble(aggrUsedPct));
@@ -260,6 +270,7 @@ public class ClusterController {
 						System.out.println("Is root aggregate: " + aggrIsRoot);
 						baggrIsRoot = false;
 					}
+					
 				}
 			};
 			
@@ -268,6 +279,8 @@ public class ClusterController {
 				if(!aggregate.isRoot()) {
 					usedSpace = usedSpace + aggregate.getAggrUsed();
 					allocatedSpace = allocatedSpace + aggregate.getAggrUsable();
+					availSpace = availSpace + aggregate.getAggrAvail();
+					
 				}
 				
 			}
