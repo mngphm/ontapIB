@@ -21,6 +21,7 @@ public class Node extends Component{
 	private double usedSpace;
 	private double allocatedSpace;
 	private double availSpace;
+	private double usedPct;
 
 	public Node() {
 	}
@@ -139,6 +140,14 @@ public class Node extends Component{
 
 	public void setAvailSpace(double availSpace) {
 		this.availSpace = availSpace;
+	}
+
+	public double getUsedPct() {
+		return usedPct;
+	}
+
+	public void setUsedPct(double usedPct) {
+		this.usedPct = usedPct;
 	}
 	
 }

@@ -283,12 +283,14 @@ public class ClusterController {
 					allocatedSpace = allocatedSpace + aggregate.getAggrUsable();
 					availSpace = availSpace + aggregate.getAggrAvail();
 				}
-				
 			}
+
+			usedPercentage = (availSpace / allocatedSpace) * 100;
 			
 			node.setAllocatedSpace(allocatedSpace);
 			node.setUsedSpace(usedSpace);
 			node.setAvailSpace(availSpace);
+			node.setUsedPct(usedPercentage);
 			node.setAggregates(aggrList);
 			nodeService.setNode(node);
 
