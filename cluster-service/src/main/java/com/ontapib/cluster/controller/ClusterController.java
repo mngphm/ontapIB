@@ -55,7 +55,7 @@ public class ClusterController {
 		List<Component> nodeList = new ArrayList<>();
 
 		String getASUPnode = webClientBuilder.build().get().uri(
-				"http://reststg.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/cluster_identifier/"
+				"http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/cluster_identifier/"
 						+ clusterIdentifier)
 				.exchange().block().bodyToMono(String.class).block();
 
@@ -173,7 +173,7 @@ public class ClusterController {
 		double usedPercentage = 0;
 
 		String asupData = webClientBuilder.build().get()
-				.uri("http://reststg.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/biz_key/"
+				.uri("http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/biz_key/"
 						+ node.getAsupBizkey() + "/object_view/aggregate")
 				.exchange().block().bodyToMono(String.class).block();
 
@@ -303,7 +303,7 @@ public class ClusterController {
 	@RequestMapping("/node/import/{nodeSerial}")
 	public String importNode(@PathVariable("nodeSerial") String nodeSerial) {
 		String asupCluster = webClientBuilder.build().get().uri(
-				"http://reststg.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/sys_serial_no/"
+				"http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/sys_serial_no/"
 						+ nodeSerial)
 				.exchange().block().bodyToMono(String.class).block();
 
