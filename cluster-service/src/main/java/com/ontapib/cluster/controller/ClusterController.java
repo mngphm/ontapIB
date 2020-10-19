@@ -285,7 +285,7 @@ public class ClusterController {
 				}
 			}
 
-			usedPercentage = (availSpace / allocatedSpace) * 100;
+			usedPercentage = (availSpace / allocatedSpace);
 			
 			node.setAllocatedSpace(allocatedSpace);
 			node.setUsedSpace(usedSpace);
