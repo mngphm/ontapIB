@@ -39,6 +39,7 @@ public class ClusterController {
 	@Autowired
 	private WebClient.Builder webClientBuilder;
 
+
 	@RequestMapping("/cluster/create")
 	public String createCluster(@RequestBody Cluster cluster) {
 		Cluster c = clusterService.createCluster(cluster.getClusterName(), cluster.getClusterIdentifier(),
@@ -54,10 +55,14 @@ public class ClusterController {
 	public List<Component> importNodes(Cluster c, String clusterIdentifier) {
 		List<Component> nodeList = new ArrayList<>();
 
-		String getASUPnode = webClientBuilder.build().get().uri(
-				"http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/cluster_identifier/"
-						+ clusterIdentifier)
-				.exchange().block().bodyToMono(String.class).block();
+		System.out.println("String Lenght: ");
+
+		String getASUPnode = webClientBuilder.build()
+				.get()
+				.uri("http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/cluster_identifier/"+ clusterIdentifier+"/system_state/active/limit/1")
+				.retrieve()
+				.bodyToMono(String.class)
+				.block();
 
 		try {
 			SAXParserFactory fact = SAXParserFactory.newInstance();
@@ -172,10 +177,13 @@ public class ClusterController {
 		double availSpace = 0;
 		double usedPercentage = 0;
 
-		String asupData = webClientBuilder.build().get()
-				.uri("http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/biz_key/"
-						+ node.getAsupBizkey() + "/object_view/aggregate")
-				.exchange().block().bodyToMono(String.class).block();
+		String asupData = webClientBuilder.build()
+				.get()
+				.uri("http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/biz_key/"+ node.getAsupBizkey() + "/object_view/aggregate")
+				.retrieve()
+				.bodyToMono(String.class)
+				.block();
+//				.exchange().block().bodyToMono(String.class).block();
 
 		try {
 			SAXParserFactory fact = SAXParserFactory.newInstance();
@@ -302,10 +310,13 @@ public class ClusterController {
 
 	@RequestMapping("/node/import/{nodeSerial}")
 	public String importNode(@PathVariable("nodeSerial") String nodeSerial) {
-		String asupCluster = webClientBuilder.build().get().uri(
-				"http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/sys_serial_no/"
-						+ nodeSerial)
-				.exchange().block().bodyToMono(String.class).block();
+		String asupCluster = webClientBuilder.build()
+				.get()
+				.uri("http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/sys_serial_no/"+ nodeSerial)
+				.retrieve()
+				.bodyToMono(String.class)
+				.block();
+//				.exchange().block().bodyToMono(String.class).block();
 
 		Cluster c = new Cluster();
 
