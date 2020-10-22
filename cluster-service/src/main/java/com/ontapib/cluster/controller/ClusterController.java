@@ -4,12 +4,15 @@ import java.io.StringReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,10 +23,12 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
+import com.google.gson.Gson;
 import com.ontapib.cluster.model.Aggregate;
 import com.ontapib.cluster.model.Cluster;
 import com.ontapib.cluster.model.Component;
 import com.ontapib.cluster.model.Node;
+import com.ontapib.cluster.model.ResponseJSONSystemContract;
 import com.ontapib.cluster.service.ClusterService;
 import com.ontapib.cluster.service.NodeService;
 
@@ -52,18 +57,19 @@ public class ClusterController {
 		return clusterService.getAllClusters();
 	}
 
-	public List<Component> importNodes(Cluster c, String clusterIdentifier) {
+	public List<Component> importClusterNodeMembers(Cluster c, String clusterIdentifier) {
 		List<Component> nodeList = new ArrayList<>();
 
-		System.out.println("String Lenght: ");
-
-		String getASUPnode = webClientBuilder.build()
+		String getASUPNodeInfo = webClientBuilder.build()
 				.get()
-				.uri("http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/cluster_identifier/"+ clusterIdentifier+"/system_state/active/limit/1")
+				.uri("http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/cluster_identifier/"+ 
+						clusterIdentifier+
+						"/system_state/active/limit/1")
 				.retrieve()
 				.bodyToMono(String.class)
 				.block();
 
+		
 		try {
 			SAXParserFactory fact = SAXParserFactory.newInstance();
 			SAXParser saxParser = fact.newSAXParser();
@@ -74,7 +80,6 @@ public class ClusterController {
 				boolean bnodeSerial = false;
 				boolean bmodelName = false;
 				boolean bnodeVersion = false;
-				boolean bwarrantyEndDate = false;
 				boolean bASUP = false;
 
 				public void startElement(String uri, String localName, String qName, Attributes attributes)
@@ -91,8 +96,6 @@ public class ClusterController {
 						bmodelName = true;
 					if (qName.equals("sys_version"))
 						bnodeVersion = true;
-					if (qName.equals("warranty_end_date"))
-						bwarrantyEndDate = true;
 					if (qName.equals("biz_key"))
 						bASUP = true;
 				}
@@ -131,16 +134,6 @@ public class ClusterController {
 						newNode.setModel(model);
 						bmodelName = false;
 					}
-					if (bwarrantyEndDate) {
-						String warrantyEndDate = new String(ch, start, length);
-						System.out.println("Warranty End Date: " + warrantyEndDate);
-						try {
-							newNode.setWarrantyEndDate(new SimpleDateFormat("yyyy-MM-dd").parse(warrantyEndDate));
-						} catch (ParseException e) {
-							e.printStackTrace();
-						}
-						bwarrantyEndDate = false;
-					}
 					if (bASUP) {
 						String bizKey = new String(ch, start, length);
 						System.out.println("ASUP bizkey: " + bizKey);
@@ -153,12 +146,14 @@ public class ClusterController {
 				}
 			};
 
-			saxParser.parse(new InputSource(new StringReader(getASUPnode)), handler);
+			saxParser.parse(new InputSource(new StringReader(getASUPNodeInfo)), handler);
 			for (Component node : nodeList) {
 				((Node) node).setCluster(c);
 				System.out.println("Write Node to the DB!");
 				nodeService.createNode((Node) node);
 				updateAsupNode(((Node) node).getSerialnumber());
+				System.out.println("Update Node contracts!");
+				updateNodeContract(((Node) node).getSerialnumber());
 			}
 
 		} catch (Exception e) {
@@ -166,6 +161,41 @@ public class ClusterController {
 		}
 
 		return nodeList;
+	}
+	
+	@RequestMapping("/node/updateContracts/{nodeSerial}")
+	public String updateNodeContract(@PathVariable("nodeSerial") String nodeSerial) {
+		Node node = nodeService.getNode(nodeSerial);
+		SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd");
+		Date currentDate = new Date();
+		Calendar c = Calendar.getInstance();
+		c.setTime(currentDate);
+		c.add(Calendar.YEAR, 2);
+		
+		Date currentDatePlusTwoYears = c.getTime();
+		
+		String getNodeContracts = webClientBuilder.build()
+				.get()
+				.uri("http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/sys_serial_no/" +
+						nodeSerial +
+						"/contracts/startdate/" +
+						dateFormatter.format(currentDate) +
+						"/enddate/" +
+						dateFormatter.format(currentDatePlusTwoYears))
+				.retrieve()
+				.bodyToMono(String.class)
+				.block();
+		
+		ResponseJSONSystemContract rs = new Gson().fromJson(getNodeContracts, ResponseJSONSystemContract.class);
+		String contractEndDate = rs.getResults().getSystems().getSystem().get(0).getHw_contract_end_date();
+		try {
+			node.setWarrantyEndDate(new SimpleDateFormat("EEE MMM d hh:mm:ss zzz yyyy").parse(contractEndDate));
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		nodeService.setNode(node);
+		return getNodeContracts;
 	}
 
 	@RequestMapping("/node/updateASUP/{nodeSerial}")
@@ -179,7 +209,9 @@ public class ClusterController {
 
 		String asupData = webClientBuilder.build()
 				.get()
-				.uri("http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/biz_key/"+ node.getAsupBizkey() + "/object_view/aggregate")
+				.uri("http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/biz_key/"+ 
+						node.getAsupBizkey() + 
+						"/object_view/aggregate")
 				.retrieve()
 				.bodyToMono(String.class)
 				.block();
@@ -310,13 +342,15 @@ public class ClusterController {
 
 	@RequestMapping("/node/import/{nodeSerial}")
 	public String importNode(@PathVariable("nodeSerial") String nodeSerial) {
+		
+		if(nodeService.getNode(nodeSerial) != null) return "Node already exists";
+		
 		String asupCluster = webClientBuilder.build()
 				.get()
 				.uri("http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/sys_serial_no/"+ nodeSerial)
 				.retrieve()
 				.bodyToMono(String.class)
 				.block();
-//				.exchange().block().bodyToMono(String.class).block();
 
 		Cluster c = new Cluster();
 
@@ -360,7 +394,7 @@ public class ClusterController {
 
 			saxParser.parse(new InputSource(new StringReader(asupCluster)), handler);
 
-			importNodes(c, c.getClusterIdentifier());
+			importClusterNodeMembers(c, c.getClusterIdentifier());
 
 		} catch (Exception e) {
 			// TODO: handle exception
