@@ -341,9 +341,10 @@ public class ClusterController {
 	}
 
 	@RequestMapping("/node/import/{nodeSerial}")
-	public String importNode(@PathVariable("nodeSerial") String nodeSerial) {
+	public List<Component> importNode(@PathVariable("nodeSerial") String nodeSerial) {
+		List<Component> importedNodes = null;
 		
-		if(nodeService.getNode(nodeSerial) != null) return "Node already exists";
+		if(nodeService.getNode(nodeSerial) != null) return null;
 		
 		String asupCluster = webClientBuilder.build()
 				.get()
@@ -394,11 +395,11 @@ public class ClusterController {
 
 			saxParser.parse(new InputSource(new StringReader(asupCluster)), handler);
 
-			importClusterNodeMembers(c, c.getClusterIdentifier());
+			importedNodes = importClusterNodeMembers(c, c.getClusterIdentifier());
 
 		} catch (Exception e) {
 			// TODO: handle exception
 		}
-		return asupCluster;
+		return importedNodes;
 	}
 }
