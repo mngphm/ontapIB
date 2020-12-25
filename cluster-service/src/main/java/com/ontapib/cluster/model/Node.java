@@ -7,10 +7,11 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document
-public class Node extends Component{
-	
+public class Node extends Component {
+
 	private String nodeName;
 	private String serialNumber;
+	private String systemId;
 	private String model;
 	private Date warrantyEndDate;
 	private String version;
@@ -22,12 +23,17 @@ public class Node extends Component{
 	private double allocatedSpace;
 	private double availSpace;
 	private double usedPct;
+	private String partnerNodeName;
+	private String partnerSystemId;
+	private String siteName;
+	private Sod sodSchein;
+	private List<Adapter> adaptes;
 
 	public Node() {
 	}
 
-	public Node(String nodeName, String version, String serialNumber, String model, 
-			Date warrantyEndDate, List<Shelve> shelves, String asupBizkey) {
+	public Node(String nodeName, String version, String serialNumber, String model, Date warrantyEndDate,
+			List<Shelve> shelves, String asupBizkey) {
 		super();
 		this.nodeName = nodeName;
 		this.version = version;
@@ -52,6 +58,14 @@ public class Node extends Component{
 
 	public void setSerialnumber(String serialNumber) {
 		this.serialNumber = serialNumber;
+	}
+
+	public String getSystemId() {
+		return systemId;
+	}
+
+	public void setSystemId(String systemId) {
+		this.systemId = systemId;
 	}
 
 	public String getModel() {
@@ -149,5 +163,44 @@ public class Node extends Component{
 	public void setUsedPct(double usedPct) {
 		this.usedPct = usedPct;
 	}
-	
+
+	public String getPartnerNodeName() {
+		return partnerNodeName;
+	}
+
+	public void setPartnerNodeName(String partnerNodeName) {
+		this.partnerNodeName = partnerNodeName;
+	}
+
+	public String getPartnerSystemId() {
+		return partnerSystemId;
+	}
+
+	public void setPartnerSystemId(String partnerSystemId) {
+		this.partnerSystemId = partnerSystemId;
+	}
+
+	public String getSiteName() {
+		return siteName;
+	}
+
+	public void setSiteName(String siteName) {
+		this.siteName = siteName;
+	}
+
+	public Sod getSodSchein() {
+		return sodSchein;
+	}
+
+	public void setSodSchein(Sod sodSchein) {
+		this.sodSchein = sodSchein;
+	}
+
+	public List<Adapter> getAdaptes() {
+		return adaptes;
+	}
+
+	public void setAdaptes(List<Adapter> adaptes) {
+		this.adaptes = adaptes;
+	}
 }

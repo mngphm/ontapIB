@@ -10,6 +10,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class Sod {
 
 	private String sodNumber;
+	private double sodCapacity;
 	private double sodBaseline;
 	private double sodFlexCapacity;
 	private Date sodEndDate;
@@ -35,6 +36,14 @@ public class Sod {
 
 	public void setSodNumber(String sodNumber) {
 		this.sodNumber = sodNumber;
+	}
+
+	public double getSodCapacity() {
+		return sodCapacity;
+	}
+
+	public void setSodCapacity(double sodCapacity) {
+		this.sodCapacity = sodCapacity;
 	}
 
 	public double getSodBaseline() {

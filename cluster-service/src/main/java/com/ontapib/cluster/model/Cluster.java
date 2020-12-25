@@ -14,12 +14,7 @@ public class Cluster {
 	private String clusterName;
 	private String clusterIdentifier;
 	private List<Node> nodes;
-	private double budget;
-	private String sodSchein;
-	private String sodBasePrice;
-	private String sodFlexPrice;
-	private String sodBaseCapacity;
-	private String sodFlexCapacity;
+	
 
 	public Cluster() {}
 
@@ -51,54 +46,6 @@ public class Cluster {
 
 	public void setNodes(List<Node> nodes) {
 		this.nodes = nodes;
-	}
-
-	public double getBudget() {
-		return budget;
-	}
-
-	public void setBudget(double budget) {
-		this.budget = budget;
-	}
-
-	public String getSodSchein() {
-		return sodSchein;
-	}
-
-	public void setSodSchein(String sodSchein) {
-		this.sodSchein = sodSchein;
-	}
-
-	public String getSodBasePrice() {
-		return sodBasePrice;
-	}
-
-	public void setSodBasePrice(String sodBasePrice) {
-		this.sodBasePrice = sodBasePrice;
-	}
-
-	public String getSodFlexPrice() {
-		return sodFlexPrice;
-	}
-
-	public void setSodFlexPrice(String sodFlexPrice) {
-		this.sodFlexPrice = sodFlexPrice;
-	}
-
-	public String getSodBaseCapacity() {
-		return sodBaseCapacity;
-	}
-
-	public void setSodBaseCapacity(String sodBaseCapacity) {
-		this.sodBaseCapacity = sodBaseCapacity;
-	}
-
-	public String getSodFlexCapacity() {
-		return sodFlexCapacity;
-	}
-
-	public void setSodFlexCapacity(String sodFlexCapacity) {
-		this.sodFlexCapacity = sodFlexCapacity;
 	}
 
 	public String toString() {
