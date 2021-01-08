@@ -27,6 +27,8 @@ import com.ontapib.cluster.model.Cluster;
 import com.ontapib.cluster.model.Component;
 import com.ontapib.cluster.model.Node;
 import com.ontapib.cluster.model.ResponseJSONSystemContract;
+import com.ontapib.cluster.model.Switch;
+import com.ontapib.cluster.restclient.NetappClient;
 import com.ontapib.cluster.service.NodeService;
 
 @RestController
@@ -34,15 +36,23 @@ public class NodeController {
 
 	@Autowired
 	private WebClient.Builder webClientBuilder;
-	
+
 	@Autowired
 	private NodeService nodeService;
+
+	@Autowired
+	private NetappClient netappClient;
 
 	@RequestMapping("/node/nodes")
 	public List<Node> getAllNodes() {
 		return nodeService.getAllNodes();
 	}
-	
+
+	@RequestMapping("/node/{nodeSerial}")
+	public Node getNode(@PathVariable("nodeSerial") String nodeSerial) {
+		return nodeService.getNode(nodeSerial);
+	}
+
 	@RequestMapping("/node/import/{nodeSerial}")
 	public List<Component> importNode(@PathVariable("nodeSerial") String nodeSerial) {
 		List<Component> importedNodes = null;
@@ -50,92 +60,23 @@ public class NodeController {
 		if (nodeService.getNode(nodeSerial) != null)
 			return null;
 
-		String asupCluster = webClientBuilder.build().get().uri(
-				"http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/sys_serial_no/"
-						+ nodeSerial)
-				.retrieve().bodyToMono(String.class).block();
+		Cluster c = netappClient.getCluster(nodeSerial);
 
-		Cluster c = new Cluster();
+		importedNodes = importClusterNodeMembers(c, c.getClusterIdentifier());
 
-		try {
-			SAXParserFactory fact = SAXParserFactory.newInstance();
-			SAXParser saxParser = fact.newSAXParser();
-			DefaultHandler handler = new DefaultHandler() {
-				boolean bclusterIdentifier = false;
-				boolean bclusterName = false;
-
-				public void startElement(String uri, String localName, String qName, Attributes attributes)
-						throws SAXException {
-
-					System.out.println("Start Element: " + qName);
-					if (qName.equals("cluster_identifier"))
-						bclusterIdentifier = true;
-					if (qName.equals("cluster_name"))
-						bclusterName = true;
-
-				}
-
-				public void endElement(String uri, String localName, String qName) {
-					System.out.println("End Element: " + qName);
-				}
-
-				public void characters(char[] ch, int start, int length) throws SAXException {
-					if (bclusterIdentifier) {
-						String clusterIdentifier = new String(ch, start, length);
-						c.setClusterIdentifier(clusterIdentifier);
-						System.out.println("ClusterIdentifier: " + clusterIdentifier);
-						bclusterIdentifier = false;
-					}
-					if (bclusterName) {
-						String clusterName = new String(ch, start, length);
-						c.setClusterName(clusterName);
-						System.out.println("ClusterIdentifier: " + clusterName);
-						bclusterName = false;
-					}
-				}
-			};
-
-			saxParser.parse(new InputSource(new StringReader(asupCluster)), handler);
-
-			importedNodes = importClusterNodeMembers(c, c.getClusterIdentifier());
-
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
 		return importedNodes;
 	}
 
 	@RequestMapping("/node/updateContracts/{nodeSerial}")
 	public String updateNodeContract(@PathVariable("nodeSerial") String nodeSerial) {
 		Node node = nodeService.getNode(nodeSerial);
-		SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd");
-		Date currentDate = new Date();
-		Calendar c = Calendar.getInstance();
-		c.setTime(currentDate);
-		c.add(Calendar.YEAR, 2);
-
-		Date currentDatePlusTwoYears = c.getTime();
-
-		String getNodeContracts = webClientBuilder.build().get().uri(
-				"http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/sys_serial_no/"
-						+ nodeSerial + "/contracts/startdate/" + dateFormatter.format(currentDate) + "/enddate/"
-						+ dateFormatter.format(currentDatePlusTwoYears))
-				.retrieve().bodyToMono(String.class).block();
-
-		ResponseJSONSystemContract rs = new Gson().fromJson(getNodeContracts, ResponseJSONSystemContract.class);
-		String contractEndDate = rs.getResults().getSystems().getSystem().get(0).getHw_contract_end_date();
-		try {
-			node.setWarrantyEndDate(new SimpleDateFormat("EEE MMM d hh:mm:ss zzz yyyy").parse(contractEndDate));
-		} catch (ParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		node.setWarrantyEndDate(netappClient.getNodeContractEndDate(nodeSerial));
 		nodeService.setNode(node);
-		return getNodeContracts;
+		return node.toString();
 	}
 
-	@RequestMapping("/node/updateASUP/{nodeSerial}")
-	public String updateAsupNode(@PathVariable("nodeSerial") String nodeSerial) {
+	@RequestMapping("/node/updateaggr/{nodeSerial}")
+	public String updateNodeAggregates(@PathVariable("nodeSerial") String nodeSerial) {
 		Node node = nodeService.getNode(nodeSerial);
 		List<Aggregate> aggrList = new ArrayList<>();
 		double usedSpace = 0;
@@ -143,112 +84,74 @@ public class NodeController {
 		double availSpace = 0;
 		double usedPercentage = 0;
 
-		String asupData = webClientBuilder.build().get()
-				.uri("http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/biz_key/"
-						+ node.getAsupBizkey() + "/object_view/aggregate")
-				.retrieve().bodyToMono(String.class).block();
-//				.exchange().block().bodyToMono(String.class).block();
+		aggrList = netappClient.getNodeAggregates(node.getAsupBizkey());
 
-		try {
-			SAXParserFactory fact = SAXParserFactory.newInstance();
-			SAXParser saxParser = fact.newSAXParser();
-			DefaultHandler handler = new DefaultHandler() {
+		for (Aggregate aggregate : aggrList) {
+			if (!aggregate.isRoot()) {
+				usedSpace = usedSpace + aggregate.getAggrUsed();
+				allocatedSpace = allocatedSpace + aggregate.getAggrUsable();
+				availSpace = availSpace + aggregate.getAggrAvail();
+			}
+		}
 
-				Aggregate aggr = null;
-				int aggrTagOpened = 0;
-				int aggrTagClosed = 0;
-				boolean baggrRowTag = false;
-				boolean baggrName = false;
-				boolean baggrUsed = false;
-				boolean baggrUsable = false;
-				boolean baggrUsedPct = false;
-				boolean baggrIsRoot = false;
-				boolean baggrAvail = false;
+		usedPercentage = (usedSpace / allocatedSpace);
 
-				public void startElement(String uri, String localName, String qName, Attributes attributes)
-						throws SAXException {
+		node.setAllocatedSpace(allocatedSpace);
+		node.setUsedSpace(usedSpace);
+		node.setAvailSpace(availSpace);
+		node.setUsedPct(usedPercentage);
+		node.setAggregates(aggrList);
+		nodeService.setNode(node);
 
-					System.out.println("Start Element: " + qName);
-					if (qName.equals("row"))
-						baggrRowTag = true;
-					if (qName.equals("aggr_name"))
-						baggrName = true;
-					if (qName.equals("aggr_used_kb"))
-						baggrUsed = true;
-					if (qName.equals("aggr_allocated_kb"))
-						baggrUsable = true;
-					if (qName.equals("aggr_used_pct"))
-						baggrUsedPct = true;
-					if (qName.equals("aggr_is_root"))
-						baggrIsRoot = true;
-					if (qName.equals("aggr_avail_kb"))
-						baggrAvail = true;
+		return node.toString();
+	}
 
-				}
+	@RequestMapping("/node/updateAdapterCards/{nodeSerial}")
+	public Node updateAdapterCards(@PathVariable("nodeSerial") String nodeSerial) {
+		Node node = nodeService.getNode(nodeSerial);
 
-				public void endElement(String uri, String localName, String qName) {
-					System.out.println("End Element: " + qName);
-					if (qName.equalsIgnoreCase("row")) {
-						System.out.println("Aggr opened and closed count: " + aggrTagOpened + " " + aggrTagClosed);
-						aggrTagClosed++;
-						if (aggrTagOpened == aggrTagClosed) {
-							aggrList.add(aggr);
-							aggrTagOpened = 0;
-							aggrTagClosed = 0;
-						}
-					}
-				}
+//		String getASUPNodeInfo = webClientBuilder.build().get().uri(
+//				"http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/biz_key/"
+//						+ node.getAsupBizkey() + "/object_data/object/adapter/")
+//				.retrieve().bodyToMono(String.class).block();
 
-				public void characters(char[] ch, int start, int length) throws SAXException {
-					if (baggrRowTag) {
-						System.out.println("Aggr opened count: " + aggrTagOpened + " " + aggrTagClosed);
-						if (aggrTagOpened == aggrTagClosed) {
-							aggr = new Aggregate();
-						}
-						aggrTagOpened++;
-						baggrRowTag = false;
-					}
-					if (baggrName) {
-						String aggrName = new String(ch, start, length);
-						aggr.setAggrName(aggrName);
-						System.out.println("Aggregate Name: " + aggrName);
-						baggrName = false;
-					}
-					if (baggrUsed) {
-						String aggrUsed = new String(ch, start, length);
-						aggr.setAggrUsed(Double.parseDouble(aggrUsed));
-						System.out.println("Aggregate Used: " + aggrUsed);
-						baggrUsed = false;
-					}
-					if (baggrUsable) {
-						String aggrUsable = new String(ch, start, length);
-						aggr.setAggrUsable(Double.parseDouble(aggrUsable));
-						System.out.println("Aggregate Usable: " + aggrUsable);
-						baggrUsable = false;
-					}
-					if (baggrAvail) {
-						String aggrAvail = new String(ch, start, length);
-						aggr.setAggrAvail(Double.parseDouble(aggrAvail));
-						System.out.println("Aggregate Available: " + aggrAvail);
-						baggrAvail = false;
-					}
-					if (baggrUsedPct) {
-						String aggrUsedPct = new String(ch, start, length);
-						aggr.setAggrUsedPct(Double.parseDouble(aggrUsedPct));
-						System.out.println("Aggregate Used Percentage: " + aggrUsedPct);
-						baggrUsedPct = false;
-					}
-					if (baggrIsRoot) {
-						String aggrIsRoot = new String(ch, start, length);
-						aggr.setRoot(Boolean.parseBoolean(aggrIsRoot));
-						System.out.println("Is root aggregate: " + aggrIsRoot);
-						baggrIsRoot = false;
-					}
+		return null;
+	}
 
-				}
-			};
+	@RequestMapping("/node/updateShelves/{nodeSerial}")
+	public Node updateShelves() {
+		return null;
+	}
 
-			saxParser.parse(new InputSource(new StringReader(asupData)), handler);
+	public List<Component> importClusterNodeMembers(Cluster c, String clusterIdentifier) {
+		List<Component> nodeList = new ArrayList<>();
+		List<Switch> switchList = new ArrayList<>();
+
+		c.setSwitches(netappClient.getClusterSwitches(clusterIdentifier));
+
+		nodeList = netappClient.getClusterNodes(clusterIdentifier);
+
+		for (Component node : nodeList) {
+
+			/*
+			 * Set node cluster
+			 */
+			((Node) node).setCluster(c);
+
+			/*
+			 * Set node warranty end date
+			 */
+			((Node) node).setWarrantyEndDate(netappClient.getNodeContractEndDate(((Node) node).getSerialnumber()));
+
+			/*
+			 * Set node Aggregates and total capacity info
+			 */
+			List<Aggregate> aggrList = netappClient.getNodeAggregates(((Node) node).getAsupBizkey());
+			double usedSpace = 0;
+			double allocatedSpace = 0;
+			double availSpace = 0;
+			double usedPercentage = 0;
+
 			for (Aggregate aggregate : aggrList) {
 				if (!aggregate.isRoot()) {
 					usedSpace = usedSpace + aggregate.getAggrUsed();
@@ -259,181 +162,14 @@ public class NodeController {
 
 			usedPercentage = (usedSpace / allocatedSpace);
 
-			node.setAllocatedSpace(allocatedSpace);
-			node.setUsedSpace(usedSpace);
-			node.setAvailSpace(availSpace);
-			node.setUsedPct(usedPercentage);
-			node.setAggregates(aggrList);
-			nodeService.setNode(node);
+			((Node) node).setAllocatedSpace(allocatedSpace);
+			((Node) node).setUsedSpace(usedSpace);
+			((Node) node).setAvailSpace(availSpace);
+			((Node) node).setUsedPct(usedPercentage);
+			((Node) node).setAggregates(aggrList);
 
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
-		return asupData;
-	}
-
-	@RequestMapping("/node/updateAdapterCards/{nodeSerial}")
-	public Node updateAdapterCards(@PathVariable("nodeSerial") String nodeSerial) {
-		Node node = nodeService.getNode(nodeSerial);
-		
-//		String getASUPNodeInfo = webClientBuilder.build().get().uri(
-//				"http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/biz_key/"
-//						+ node.getAsupBizkey() + "/object_data/object/adapter/")
-//				.retrieve().bodyToMono(String.class).block();
-		
-		return null;
-	}
-	
-	@RequestMapping("/node/updateShelves/{nodeSerial}")
-	public Node updateShelves() {
-		return null;
-	}
-	
-	public List<Component> importClusterNodeMembers(Cluster c, String clusterIdentifier) {
-		List<Component> nodeList = new ArrayList<>();
-
-		String getASUPNodeInfo = webClientBuilder.build().get().uri(
-				"http://restprd.corp.netapp.com/asup-rest-interface/ASUP_DATA/client_id/sc_inventory/cluster_identifier/"
-						+ clusterIdentifier + "/system_state/active/limit/1")
-				.retrieve().bodyToMono(String.class).block();
-
-		try {
-			SAXParserFactory fact = SAXParserFactory.newInstance();
-			SAXParser saxParser = fact.newSAXParser();
-			DefaultHandler handler = new DefaultHandler() {
-				Node newNode = null;
-
-				boolean bnodeName = false;
-				boolean bnodeSerial = false;
-				boolean bnodeSystemId = false;
-				boolean bmodelName = false;
-				boolean bnodeVersion = false;
-				boolean bASUP = false;
-				boolean bPartnerNodeName = false;
-				boolean bPartherSystemId = false;
-				boolean bSiteName = false;
-
-				public void startElement(String uri, String localName, String qName, Attributes attributes)
-						throws SAXException {
-
-					System.out.println("Start Element: " + qName);
-					if (qName.equals("system"))
-						newNode = new Node();
-					if (qName.equals("hostname"))
-						bnodeName = true;
-					if (qName.equals("sys_serial_no"))
-						bnodeSerial = true;
-					if (qName.equals("system_id"))
-						bnodeSystemId = true;
-					if (qName.equals("sys_model"))
-						bmodelName = true;
-					if (qName.equals("sys_version"))
-						bnodeVersion = true;
-					if (qName.equals("biz_key"))
-						bASUP = true;
-					if (qName.equals("partner_hostname"))
-						bPartnerNodeName = true;
-					if (qName.equals("partner_system_id"))
-						bPartherSystemId = true;
-					if (qName.equals("site_name"))
-						bSiteName = true;
-				}
-
-				public void endElement(String uri, String localName, String qName) {
-					System.out.println("End Element: " + qName);
-					if (qName.equalsIgnoreCase("system")) {
-						nodeList.add(newNode);
-					}
-				}
-
-				public void characters(char[] ch, int start, int length) throws SAXException {
-					if (bnodeName) {
-						String nodeName = new String(ch, start, length);
-						System.out.println("NodeName: " + nodeName);
-						newNode.setNodeName(nodeName);
-						bnodeName = false;
-					}
-
-					if (bnodeSerial) {
-						String serialnumber = new String(ch, start, length);
-						System.out.println("Serial: " + serialnumber);
-						newNode.setSerialnumber(serialnumber);
-						bnodeSerial = false;
-					}
-					
-					if (bnodeSystemId) {
-						String systemId = new String(ch, start, length);
-						System.out.println("SystemId: " + systemId);
-						newNode.setSystemId(systemId);
-						bnodeSystemId = false;
-					}
-
-					if (bnodeVersion) {
-						String nodeVersion = new String(ch, start, length);
-						System.out.println("NodeVersion: " + nodeVersion);
-						newNode.setVersion(nodeVersion);
-						bnodeVersion = false;
-					}
-					if (bmodelName) {
-						String model = new String(ch, start, length);
-						System.out.println("Model: " + model);
-						newNode.setModel(model);
-						bmodelName = false;
-					}
-					if (bASUP) {
-						String bizKey = new String(ch, start, length);
-						System.out.println("ASUP bizkey: " + bizKey);
-						if (newNode.getAsupBizkey() == null) {
-							newNode.setAsupBizkey(bizKey);
-							bASUP = false;
-						}
-						bASUP = false;
-					}
-					
-					if (bPartnerNodeName) {
-						String partnerNodeName = new String(ch, start, length);
-						System.out.println("Partner Nodename: " + partnerNodeName);
-						if (newNode.getPartnerNodeName() == null) {
-							newNode.setPartnerNodeName(partnerNodeName);
-							bPartnerNodeName = false;
-						}
-						bPartnerNodeName = false;
-					}
-					
-					if (bPartherSystemId) {
-						String partnerSystemId = new String(ch, start, length);
-						System.out.println("ASUP bizkey: " + partnerSystemId);
-						if (newNode.getPartnerSystemId() == null) {
-							newNode.setPartnerSystemId(partnerSystemId);
-							bPartherSystemId = false;
-						}
-						bPartherSystemId = false;
-					}
-					
-					if (bSiteName) {
-						String siteName = new String(ch, start, length);
-						System.out.println("ASUP bizkey: " + siteName);
-						if (newNode.getSiteName() == null) {
-							newNode.setSiteName(siteName);
-							bSiteName = false;
-						}
-						bSiteName = false;
-					}
-				}
-			};
-
-			saxParser.parse(new InputSource(new StringReader(getASUPNodeInfo)), handler);
-			for (Component node : nodeList) {
-				((Node) node).setCluster(c);
-				System.out.println("Write Node to the DB!");
-				nodeService.createNode((Node) node);
-				updateAsupNode(((Node) node).getSerialnumber());
-				System.out.println("Update Node contracts!");
-				updateNodeContract(((Node) node).getSerialnumber());
-			}
-
-		} catch (Exception e) {
-			// TODO: handle exception
+			System.out.println("Write Node to the DB!");
+			nodeService.createNode((Node) node);
 		}
 
 		return nodeList;
